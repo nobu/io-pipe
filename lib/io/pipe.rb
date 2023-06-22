@@ -1,8 +1,8 @@
 module IO::Pipe
-  Command = Data.define(:command, :each_args, :open_args) {
+  Command = Data.define(:command, :each_args, :each_kwds, :open_args) {
     include Enumerable
 
-    def initialize(command:, each_args: nil, open_args: {})
+    def initialize(command:, each_args: nil, each_kwds: nil, open_args: {})
       super
     end
 
@@ -19,18 +19,18 @@ module IO::Pipe
       code << "def #{m}(...) = open {|f| f.#{m}(...)}\n"
     end
 
-    def each(*args, &block)
+    def each(*args, **kwds, &block)
       if block_given?
-        open {|f| f.each(*args, &block)}
+        open {|f| f.each(*each_args, *args, **each_kwds, **kwds, &block)}
       else
-        with(each_args: args)
+        with(each_args: args, each_kwds: kwds)
       end
     end
 
     %i[
       each_line each_byte each_char each_codepoint
     ].map do |m|
-      code << "def #{m}(...) = open {|f| f.#{m}(*each_args, ...)}\n"
+      code << "def #{m}(*args, **kwds, &block) = open {|f| f.#{m}(*each_args, *args, **each_kwds, **kwds, &block)}\n"
     end
 
     eval code.join("")
