@@ -3,3 +3,8 @@ $ ruby -I./lib -rio/pipe -e 'using IO::Pipe' -e 'p *`cp`.redirect(err: %i[child 
 "cp: missing file operand\n"
 "Try 'cp --help' for more information.\n"
 ```
+
+```shell-session
+$ ruby -I./lib -rio/pipe -e 'using IO::Pipe' -e 'p *`ls *.md`.each(chomp: true)'
+"README.md"
+```
