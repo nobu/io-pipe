@@ -38,21 +38,23 @@ jobs:
     - name: Run test
       run: bundle exec rake test
 
-  build:
-    needs: ruby-versions
-    runs-on: macos-latest
-    name: Build package
-    strategy:
-      matrix:
-        ruby: ${{ fromJson(needs.ruby-versions.outputs.latest) }}
-
-    steps:
-    - name: Run build
+    - id: build
       run: |
-        git fetch --force --no-tags origin 'refs/tags/v*:refs/tags/v*'
-        bundle exec rake build
+        rake build
+        ls -l pkg/*.gem
+        shasum -a 256 pkg/*.gem
+        echo "pkg=${GITHUB_REPOSITORY#*/}-${RUNNING_OS%-*}" >> $GITHUB_OUTPUT
+      env:
+        RUNNING_OS: ${{matrix.os}}
+      shell: bash
+      if: >-
+        ${{
+        matrix.os != 'windows-latest' &&
+        matrix.ruby == needs.ruby-versions.outputs.latest
+        }}
     - name: Upload package
       uses: actions/upload-artifact@v4
       with:
         path: pkg/*.gem
-        name: ${GITHUB_REPOSITORY#*/}
+        name: ${{steps.build.outputs.pkg}}
+      if: ${{ steps.build.outcome == 'success' }}
