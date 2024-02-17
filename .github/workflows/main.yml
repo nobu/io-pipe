@@ -1,0 +1,58 @@
+name: Ruby
+
+on:
+  push:
+    branches:
+      - master
+
+  pull_request:
+
+jobs:
+  ruby-versions:
+    uses: ruby/actions/.github/workflows/ruby_versions.yml@master
+    with:
+      engine: cruby
+      min_version: 3.2
+
+  test:
+    needs: ruby-versions
+    runs-on: ${{ matrix.os || 'ubuntu-latest' }}
+    name: Ruby ${{ matrix.ruby }} / ${{ matrix.os }}
+    strategy:
+      matrix:
+        ruby: ${{ fromJson(needs.ruby-versions.outputs.versions) }}
+        os: [ ubuntu-latest, macos-latest ]
+
+    steps:
+    - name: git config
+      run: |
+        git config --global core.autocrlf false
+        git config --global core.eol lf
+        git config --global advice.detachedHead 0
+    - uses: actions/checkout@v4
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+        bundler-cache: true
+    - name: Run test
+      run: bundle exec rake test
+
+  build:
+    needs: ruby-versions
+    runs-on: macos-latest
+    name: Build package
+    strategy:
+      matrix:
+        ruby: ${{ fromJson(needs.ruby-versions.outputs.latest) }}
+
+    steps:
+    - name: Run build
+      run: |
+        git fetch --force --no-tags origin 'refs/tags/v*:refs/tags/v*'
+        bundle exec rake build
+    - name: Upload package
+      uses: actions/upload-artifact@v4
+      with:
+        path: pkg/*.gem
+        name: ${GITHUB_REPOSITORY#*/}
