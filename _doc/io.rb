@@ -1,0 +1,2 @@
+# :stopdoc:
+class IO end
